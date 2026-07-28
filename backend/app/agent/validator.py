@@ -9,13 +9,13 @@ either.
 
 from abc import ABC, abstractmethod
 
-from app.schemas.tools import ToolCallResult
+from app.schemas.tool_execution import ToolExecutionResult
 from app.schemas.validation import ValidationResult
 
 
 class Validator(ABC):
     @abstractmethod
-    def validate(self, results: list[ToolCallResult]) -> ValidationResult:
+    def validate(self, results: list[ToolExecutionResult]) -> ValidationResult:
         """Validate a batch of tool results, returning aggregated issues."""
 
 
@@ -28,7 +28,7 @@ class PassThroughValidator(Validator):
       - budget constraints from ConversationState.travel_session
     """
 
-    def validate(self, results: list[ToolCallResult]) -> ValidationResult:
+    def validate(self, results: list[ToolExecutionResult]) -> ValidationResult:
         from app.schemas.common import ActionStatus
         from app.schemas.validation import ValidationIssue, ValidationSeverity
 

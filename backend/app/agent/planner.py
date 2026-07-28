@@ -6,11 +6,13 @@ ExecutionPlan, or whether the user still needs to be asked for more
 details (ClarificationAction). This decision, not a fixed dialogue tree,
 is what makes the system an agent.
 
-The Planner never touches a SessionStore and never calls a tool — it only
-produces a decision for the orchestrator to act on. Extracting values from
-the message is delegated to a SlotExtractor; merging those values into the
-session and judging completeness is delegated to the ConversationManager,
-so this class stays focused on the planning decision itself.
+The Planner never touches a SessionStore, never calls a tool, never
+validates tool output, and never builds an itinerary. It also never talks
+to an LLM directly, and holds no provider-specific logic: extracting
+values from the message is delegated to a SlotExtractor (which may or may
+not be LLM-backed), and merging those values into the session / judging
+completeness is delegated to the ConversationManager. This class stays
+focused on the planning decision itself.
 """
 
 from abc import ABC, abstractmethod
@@ -39,12 +41,16 @@ class Planner(ABC):
         current TravelSession. Must never execute a tool."""
 
 
-class RuleBasedPlanner(Planner):
-    """Regex-extraction-backed planner.
+class LLMPlanner(Planner):
+    """Planner whose language understanding comes from an LLM-backed
+    SlotExtractor.
 
-    TODO: replace with an LLM-backed implementation (and/or a smarter
-    SlotExtractor) for real natural-language understanding — the
-    ClarificationAction/ExecutionPlan contract should not need to change.
+    The extraction step can raise SlotExtractionError when the LLM returns
+    output that can't be trusted (invalid JSON, wrong types, ...). This
+    class deliberately does not catch it: the Planner performs no
+    retries and no fallback handling — it lets the error propagate so the
+    orchestrator's existing planning-failure path (FallbackManager) can
+    turn it into a graceful, descriptive response.
     """
 
     def __init__(
@@ -56,7 +62,7 @@ class RuleBasedPlanner(Planner):
     def create_plan(
         self, message: str, session: TravelSession
     ) -> ClarificationAction | ExecutionPlan:
-        extracted = self._extractor.extract(message)
+        extracted = self._extractor.extract(message, session)
         updated_session = self._conversation_manager.update_session(session, extracted)
         missing = self._conversation_manager.get_missing_slots(updated_session)
 

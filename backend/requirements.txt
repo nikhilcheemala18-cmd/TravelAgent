@@ -3,3 +3,7 @@ uvicorn[standard]>=0.30
 pydantic>=2.7
 pydantic-settings>=2.3
 python-dotenv>=1.0
+
+# Only required when LLM_PROVIDER=openai (app/llm/providers/openai_client.py
+# imports it lazily); the default LLM_PROVIDER=mock needs no LLM SDK.
+openai>=1.30

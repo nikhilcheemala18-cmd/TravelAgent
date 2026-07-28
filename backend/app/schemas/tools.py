@@ -8,8 +8,6 @@ contract the rest of the agent depends on.
 
 from pydantic import BaseModel
 
-from app.schemas.common import ActionStatus, ToolName
-
 
 class ToolInput(BaseModel):
     """Base class for all tool inputs."""
@@ -76,14 +74,3 @@ class CarRentalOption(BaseModel):
 
 class CarRentalSearchOutput(ToolOutput):
     options: list[CarRentalOption] = []
-
-
-class ToolCallResult(BaseModel):
-    """Uniform envelope the ToolExecutor returns for every tool invocation,
-    regardless of which concrete *Input/*Output pair was used."""
-
-    tool_name: ToolName
-    status: ActionStatus
-    input: dict
-    output: dict | None = None
-    error_message: str | None = None

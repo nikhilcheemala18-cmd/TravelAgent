@@ -2,20 +2,23 @@
 
 Wires concrete implementations into the abstract interfaces used by
 app/agent/*. Swapping an implementation (e.g. InMemorySessionStore ->
-RedisSessionStore, or RuleBasedPlanner -> an LLM-backed planner)
-happens here and nowhere else.
+RedisSessionStore, or the LLM provider behind the Planner) happens here
+and nowhere else.
 """
 
 from functools import lru_cache
 
 from app.agent.conversation_manager import ConversationManager
-from app.agent.extraction import RegexSlotExtractor, SlotExtractor
+from app.agent.extraction import LLMSlotExtractor, SlotExtractor
 from app.agent.fallback_manager import DefaultFallbackManager, FallbackManager
 from app.agent.itinerary_builder import DefaultItineraryBuilder, ItineraryBuilder
 from app.agent.orchestrator import TravelAgentOrchestrator
-from app.agent.planner import Planner, RuleBasedPlanner
+from app.agent.planner import LLMPlanner, Planner
 from app.agent.tool_executor import ToolExecutor
 from app.agent.validator import PassThroughValidator, Validator
+from app.config import get_settings
+from app.llm.base import LLMClient
+from app.llm.factory import build_llm_client
 from app.session.store import InMemorySessionStore, SessionStore
 from app.tools.registry import ToolRegistry, build_default_registry
 
@@ -36,13 +39,18 @@ def get_tool_registry() -> ToolRegistry:
 
 
 @lru_cache
+def get_llm_client() -> LLMClient:
+    return build_llm_client(get_settings())
+
+
+@lru_cache
 def get_slot_extractor() -> SlotExtractor:
-    return RegexSlotExtractor()
+    return LLMSlotExtractor(llm_client=get_llm_client())
 
 
 @lru_cache
 def get_planner() -> Planner:
-    return RuleBasedPlanner(
+    return LLMPlanner(
         conversation_manager=get_conversation_manager(), extractor=get_slot_extractor()
     )
 

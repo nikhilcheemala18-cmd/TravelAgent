@@ -27,6 +27,17 @@ class Settings(BaseSettings):
     hotel_provider_api_key: str | None = None
     car_rental_provider_api_key: str | None = None
 
+    # Which LLMClient app/llm/factory.py builds. "mock" (default) needs no
+    # credentials and runs fully offline — good for local dev/tests.
+    # Add a new provider by registering it in app/llm/factory.py, not by
+    # adding branches anywhere that consumes LLMClient.
+    llm_provider: str = "mock"
+    llm_api_key: str | None = None
+    llm_model: str = "gpt-4o-mini"
+    # Override to point an OpenAI-compatible client at a different host,
+    # e.g. a local Ollama server — only used by providers that support it.
+    llm_base_url: str | None = None
+
     cors_allow_origins: list[str] = ["*"]
 
 

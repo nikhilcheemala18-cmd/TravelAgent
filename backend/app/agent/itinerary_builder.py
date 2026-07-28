@@ -9,12 +9,13 @@ from abc import ABC, abstractmethod
 
 from app.schemas.common import ActionStatus, ToolName
 from app.schemas.itinerary import Itinerary
-from app.schemas.tools import CarRentalOption, FlightOption, HotelOption, ToolCallResult
+from app.schemas.tool_execution import ToolExecutionResult
+from app.schemas.tools import CarRentalOption, FlightOption, HotelOption
 
 
 class ItineraryBuilder(ABC):
     @abstractmethod
-    def build(self, results: list[ToolCallResult]) -> Itinerary:
+    def build(self, results: list[ToolExecutionResult]) -> Itinerary:
         """Turn successful tool results into an Itinerary."""
 
 
@@ -26,24 +27,24 @@ class DefaultItineraryBuilder(ItineraryBuilder):
     across currencies; conflict detection between flights/hotels/cars.
     """
 
-    def build(self, results: list[ToolCallResult]) -> Itinerary:
+    def build(self, results: list[ToolExecutionResult]) -> Itinerary:
         itinerary = Itinerary()
 
         for result in results:
-            if result.status != ActionStatus.SUCCESS or not result.output:
+            if result.status != ActionStatus.SUCCESS or not result.returned_data:
                 continue
 
             if result.tool_name == ToolName.FLIGHT_SEARCH:
                 itinerary.flights.extend(
-                    FlightOption(**opt) for opt in result.output.get("options", [])
+                    FlightOption(**opt) for opt in result.returned_data.get("options", [])
                 )
             elif result.tool_name == ToolName.HOTEL_SEARCH:
                 itinerary.hotels.extend(
-                    HotelOption(**opt) for opt in result.output.get("options", [])
+                    HotelOption(**opt) for opt in result.returned_data.get("options", [])
                 )
             elif result.tool_name == ToolName.CAR_RENTAL_SEARCH:
                 itinerary.car_rentals.extend(
-                    CarRentalOption(**opt) for opt in result.output.get("options", [])
+                    CarRentalOption(**opt) for opt in result.returned_data.get("options", [])
                 )
 
         itinerary.summary = "Draft itinerary (placeholder builder — no ranking/selection applied yet)."

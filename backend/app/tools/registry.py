@@ -19,7 +19,7 @@ class ToolRegistry:
     def register(self, tool: BaseTool) -> None:
         self._tools[tool.name] = tool
 
-    def get(self, tool_name: ToolName) -> BaseTool:
+    def get_tool(self, tool_name: ToolName) -> BaseTool:
         if tool_name not in self._tools:
             raise KeyError(f"No tool registered for '{tool_name}'")
         return self._tools[tool_name]

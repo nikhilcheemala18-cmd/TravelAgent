@@ -1,81 +1,111 @@
 """Slot extraction for the Planner.
 
-Turns free-form user text into a partial set of TravelSession field values.
-Isolated behind the SlotExtractor interface so today's regex-based
-heuristic can be replaced with an LLM-backed extractor later without the
-Planner (or anything downstream of it) changing.
+Turns free-form user text — plus the trip details already known — into a
+partial set of TravelSession field updates. All natural-language
+understanding is delegated to an injected LLMClient; this module's own
+job is prompt assembly and turning the LLM's response into data the
+Planner/ConversationManager can trust, not the extraction itself.
 """
 
-import re
+import json
 from abc import ABC, abstractmethod
 from typing import Any
+
+from pydantic import ValidationError
+
+from app.agent.prompts.extraction import EXTRACTION_SYSTEM_PROMPT, build_extraction_user_prompt
+from app.llm.base import LLMClient
+from app.schemas.travel_session import TravelSession
+from app.utils.logging import get_logger
+
+logger = get_logger(__name__)
+
+
+class SlotExtractionError(Exception):
+    """Raised when the LLM's structured output can't be trusted.
+
+    Covers non-JSON responses, non-object JSON, and values that fail
+    TravelSession validation. Deliberately not caught anywhere in this
+    module or in the Planner — corrupted extraction output must surface
+    as a clear failure rather than silently produce a half-filled or
+    wrong TravelSession.
+    """
 
 
 class SlotExtractor(ABC):
     @abstractmethod
-    def extract(self, message: str) -> dict[str, Any]:
-        """Return the TravelSession field values found in `message`.
+    def extract(self, message: str, session: TravelSession) -> dict[str, Any]:
+        """Return the TravelSession field values newly found in `message`.
 
-        Fields that weren't mentioned must be omitted from the returned
-        dict (not set to None), so callers can tell "not mentioned" apart
-        from "explicitly cleared".
+        `session` is the trip state already collected, provided as context
+        so the extractor can tell what's already known from what's new.
+        Fields not mentioned must be omitted from the returned dict (not
+        set to None), so callers can tell "not mentioned" apart from
+        "explicitly cleared".
         """
 
 
-class RegexSlotExtractor(SlotExtractor):
-    """Rule-based extractor using regular expressions.
+class LLMSlotExtractor(SlotExtractor):
+    """Structured-extraction SlotExtractor backed by an LLMClient.
 
-    Deliberately conservative: it recognizes a handful of common phrasings
-    (ISO dates, "from X to Y", "N passengers", "$N budget", "N star
-    hotel") and skips anything it isn't confident about rather than
-    guessing.
-
-    TODO: replace with an LLM-backed SlotExtractor for robust natural
-    language understanding (relative dates, city name normalization,
-    multi-turn corrections, etc.) — the SlotExtractor interface should not
-    need to change.
+    Provider-agnostic: it depends only on the LLMClient interface, so
+    switching between OpenAI / Gemini / Claude / Ollama / the offline mock
+    is a Settings/DI change (see app/llm/factory.py, app/api/deps.py), not
+    a code change here.
     """
 
-    _ROUTE_RE = re.compile(
-        r"\bfrom\s+(?P<origin>[a-zA-Z\s]+?)\s+to\s+(?P<destination>[a-zA-Z\s]+?)"
-        r"(?=[.,!?]|\s+(?:on|for|with|departing|leaving|returning|from|budget)\b|$)",
-        re.IGNORECASE,
-    )
-    _DATE_RE = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
-    _PASSENGERS_RE = re.compile(
-        r"\b(\d+)\s*(?:passengers?|people|travelers?|adults?|pax)\b", re.IGNORECASE
-    )
-    _BUDGET_RE = re.compile(
-        r"(?:budget(?:\s+of)?\s+\$?|\$)\s?(\d[\d,]*(?:\.\d+)?)\s*(?:dollars|usd)?",
-        re.IGNORECASE,
-    )
-    _HOTEL_RATING_RE = re.compile(r"\b(\d(?:\.\d)?)\s*[- ]?star\b", re.IGNORECASE)
+    def __init__(self, llm_client: LLMClient) -> None:
+        self._llm_client = llm_client
 
-    def extract(self, message: str) -> dict[str, Any]:
-        extracted: dict[str, Any] = {}
+    def extract(self, message: str, session: TravelSession) -> dict[str, Any]:
+        raw_response = self._llm_client.complete(
+            system_prompt=EXTRACTION_SYSTEM_PROMPT,
+            user_prompt=build_extraction_user_prompt(message=message, session=session),
+        )
+        return self._parse_and_validate(raw_response, session)
 
-        route_match = self._ROUTE_RE.search(message)
-        if route_match:
-            extracted["origin"] = route_match.group("origin").strip().title()
-            extracted["destination"] = route_match.group("destination").strip().title()
+    def _parse_and_validate(self, raw_response: str, session: TravelSession) -> dict[str, Any]:
+        payload = self._strip_code_fence(raw_response)
 
-        # Heuristic: first ISO date mentioned is departure, second is return.
-        dates = self._DATE_RE.findall(message)
-        if len(dates) >= 1:
-            extracted["departure_date"] = dates[0]
-        if len(dates) >= 2:
-            extracted["return_date"] = dates[1]
+        try:
+            data = json.loads(payload)
+        except json.JSONDecodeError as exc:
+            raise SlotExtractionError(
+                f"LLM extraction response was not valid JSON ({exc}). "
+                f"Raw response: {raw_response!r}"
+            ) from exc
 
-        passengers_match = self._PASSENGERS_RE.search(message)
-        if passengers_match:
-            extracted["passengers"] = int(passengers_match.group(1))
+        if not isinstance(data, dict):
+            raise SlotExtractionError(
+                "LLM extraction response must be a JSON object, got "
+                f"{type(data).__name__}: {raw_response!r}"
+            )
 
-        budget_match = self._BUDGET_RE.search(message)
-        if budget_match:
-            extracted["budget"] = float(budget_match.group(1).replace(",", ""))
+        known_fields = set(TravelSession.model_fields)
+        unknown_keys = set(data) - known_fields
+        if unknown_keys:
+            logger.warning("Dropping unrecognized fields from LLM extraction: %s", unknown_keys)
+        updates = {key: value for key, value in data.items() if key in known_fields}
 
-        hotel_match = self._HOTEL_RATING_RE.search(message)
-        if hotel_match:
-            extracted["hotel_rating"] = float(hotel_match.group(1))
+        # Type-check the proposed updates against TravelSession before
+        # handing them back — a value that doesn't fit the schema (e.g.
+        # passengers: "two") must fail loudly, not get coerced or ignored.
+        try:
+            TravelSession.model_validate({**session.model_dump(), **updates})
+        except ValidationError as exc:
+            raise SlotExtractionError(
+                f"LLM extraction response failed TravelSession validation: {exc}"
+            ) from exc
 
-        return extracted
+        return updates
+
+    @staticmethod
+    def _strip_code_fence(text: str) -> str:
+        """Some models wrap JSON in ```/```json fences despite instructions
+        not to; tolerate that without loosening the JSON parsing itself."""
+        stripped = text.strip()
+        if stripped.startswith("```"):
+            stripped = stripped.strip("`")
+            if stripped.lower().startswith("json"):
+                stripped = stripped[len("json") :]
+        return stripped.strip()
