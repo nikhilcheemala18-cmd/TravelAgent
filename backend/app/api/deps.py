@@ -2,17 +2,18 @@
 
 Wires concrete implementations into the abstract interfaces used by
 app/agent/*. Swapping an implementation (e.g. InMemorySessionStore ->
-RedisSessionStore, or PlaceholderAgentPlanner -> an LLM-backed planner)
+RedisSessionStore, or RuleBasedPlanner -> an LLM-backed planner)
 happens here and nowhere else.
 """
 
 from functools import lru_cache
 
 from app.agent.conversation_manager import ConversationManager
+from app.agent.extraction import RegexSlotExtractor, SlotExtractor
 from app.agent.fallback_manager import DefaultFallbackManager, FallbackManager
 from app.agent.itinerary_builder import DefaultItineraryBuilder, ItineraryBuilder
 from app.agent.orchestrator import TravelAgentOrchestrator
-from app.agent.planner import AgentPlanner, PlaceholderAgentPlanner
+from app.agent.planner import Planner, RuleBasedPlanner
 from app.agent.tool_executor import ToolExecutor
 from app.agent.validator import PassThroughValidator, Validator
 from app.session.store import InMemorySessionStore, SessionStore
@@ -35,8 +36,15 @@ def get_tool_registry() -> ToolRegistry:
 
 
 @lru_cache
-def get_planner() -> AgentPlanner:
-    return PlaceholderAgentPlanner()
+def get_slot_extractor() -> SlotExtractor:
+    return RegexSlotExtractor()
+
+
+@lru_cache
+def get_planner() -> Planner:
+    return RuleBasedPlanner(
+        conversation_manager=get_conversation_manager(), extractor=get_slot_extractor()
+    )
 
 
 @lru_cache

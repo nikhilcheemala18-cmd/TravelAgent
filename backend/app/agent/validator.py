@@ -25,7 +25,7 @@ class PassThroughValidator(Validator):
     TODO: add real rules, e.g.:
       - required fields present per tool type
       - price/date sanity checks
-      - budget constraints from ConversationState.context
+      - budget constraints from ConversationState.travel_session
     """
 
     def validate(self, results: list[ToolCallResult]) -> ValidationResult:
