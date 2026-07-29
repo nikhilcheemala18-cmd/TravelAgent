@@ -1,16 +1,19 @@
 """Agent Orchestrator.
 
 Wires the pipeline together: ConversationManager -> Planner -> ToolExecutor
--> Validator -> FallbackManager -> ItineraryBuilder. This is the single
-place that knows the *order* of the agent loop; every other component only
-knows its own step, and each stage is only ever given the previous stage's
-output — the orchestrator never reaches back further than that.
+-> Validator -> FallbackManager -> ItineraryBuilder -> ResponseBuilder.
+This is the single place that knows the *order* of the agent loop; every
+other component only knows its own step, and each stage is only ever
+given the previous stage's output — the orchestrator never reaches back
+further than that, and contains no business logic of its own beyond that
+sequencing.
 """
 
 from app.agent.conversation_manager import ConversationManager
 from app.agent.fallback_manager import FallbackManager
 from app.agent.itinerary_builder import ItineraryBuilder
 from app.agent.planner import Planner
+from app.agent.response_builder import ResponseBuilder
 from app.agent.tool_executor import ToolExecutor
 from app.agent.validator import Validator
 from app.schemas.agent import ClarificationAction
@@ -29,6 +32,7 @@ class TravelAgentOrchestrator:
         validator: Validator,
         fallback_manager: FallbackManager,
         itinerary_builder: ItineraryBuilder,
+        response_builder: ResponseBuilder,
     ) -> None:
         self._conversation_manager = conversation_manager
         self._planner = planner
@@ -36,6 +40,7 @@ class TravelAgentOrchestrator:
         self._validator = validator
         self._fallback_manager = fallback_manager
         self._itinerary_builder = itinerary_builder
+        self._response_builder = response_builder
 
     def handle_message(self, request: ChatRequest) -> ChatResponse:
         state = self._conversation_manager.get_or_create_session(request.session_id)
@@ -73,21 +78,19 @@ class TravelAgentOrchestrator:
         validation = self._validator.validate(results)
         fallback_outcome = self._fallback_manager.handle_validation_result(validation)
 
-        if not fallback_outcome.resolved:
-            reply = fallback_outcome.message or (
-                "I couldn't retrieve any options right now. Please try again in a moment."
-            )
-            self._conversation_manager.add_assistant_message(state, reply)
-            return ChatResponse(session_id=state.session_id, reply=reply)
-
-        itinerary = self._itinerary_builder.build(fallback_outcome.results)
-        reply = itinerary.summary or "Here's what I found."
-        if fallback_outcome.message:
-            reply = f"{reply} {fallback_outcome.message}"
-        self._conversation_manager.add_assistant_message(state, reply)
-
-        return ChatResponse(
-            session_id=state.session_id,
-            reply=reply,
-            itinerary=itinerary,
+        itinerary = self._itinerary_builder.build(
+            results=fallback_outcome.results,
+            validation=validation,
+            fallback=fallback_outcome,
+            travel_session=state.travel_session,
         )
+        response = self._response_builder.build_response(
+            session_id=state.session_id,
+            itinerary=itinerary,
+            results=fallback_outcome.results,
+            validation=validation,
+            fallback=fallback_outcome,
+        )
+        self._conversation_manager.add_assistant_message(state, response.reply)
+
+        return response

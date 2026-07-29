@@ -14,6 +14,7 @@ from app.agent.fallback_manager import DefaultFallbackManager, FallbackManager
 from app.agent.itinerary_builder import DefaultItineraryBuilder, ItineraryBuilder
 from app.agent.orchestrator import TravelAgentOrchestrator
 from app.agent.planner import LLMPlanner, Planner
+from app.agent.response_builder import ResponseBuilder
 from app.agent.tool_executor import ToolExecutor
 from app.agent.validator import DefaultValidator, Validator
 from app.config import get_settings
@@ -81,6 +82,11 @@ def get_itinerary_builder() -> ItineraryBuilder:
 
 
 @lru_cache
+def get_response_builder() -> ResponseBuilder:
+    return ResponseBuilder()
+
+
+@lru_cache
 def get_orchestrator() -> TravelAgentOrchestrator:
     return TravelAgentOrchestrator(
         conversation_manager=get_conversation_manager(),
@@ -89,4 +95,5 @@ def get_orchestrator() -> TravelAgentOrchestrator:
         validator=get_validator(),
         fallback_manager=get_fallback_manager(),
         itinerary_builder=get_itinerary_builder(),
+        response_builder=get_response_builder(),
     )

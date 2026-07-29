@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 from app.schemas.common import MessageRole
 from app.schemas.itinerary import Itinerary
+from app.schemas.response import ExecutionSummary, FallbackSummary, ToolResultSummary, ValidationSummary
 from app.schemas.travel_session import TravelSession
 
 
@@ -34,8 +35,21 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
+    """The single API-level response shape, used for every turn outcome —
+    clarification, failure, and a completed itinerary alike. Only the
+    completed-itinerary path (via ResponseBuilder) populates the summary
+    fields; everything else leaves them at their defaults.
+    """
+
     session_id: str
     reply: str
     requires_clarification: bool = False
     missing_slots: list[str] | None = None
     itinerary: Itinerary | None = None
+
+    execution_summary: ExecutionSummary | None = None
+    tool_results_summary: list[ToolResultSummary] | None = None
+    validation_summary: ValidationSummary | None = None
+    fallback_summary: FallbackSummary | None = None
+    warnings: list[str] = Field(default_factory=list)
+    success: bool = False
