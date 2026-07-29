@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     # e.g. a local Ollama server — only used by providers that support it.
     llm_base_url: str | None = None
 
+    # FallbackManager retry policy for transient tool failures. Bounded —
+    # fallback_max_retries=0 disables retries without disabling fallback
+    # (unresolved tools are still reported, just never retried).
+    fallback_max_retries: int = 2
+    fallback_retry_delay_ms: int = 250
+
     cors_allow_origins: list[str] = ["*"]
 
 

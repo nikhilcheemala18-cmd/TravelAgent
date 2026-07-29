@@ -15,7 +15,7 @@ from app.agent.itinerary_builder import DefaultItineraryBuilder, ItineraryBuilde
 from app.agent.orchestrator import TravelAgentOrchestrator
 from app.agent.planner import LLMPlanner, Planner
 from app.agent.tool_executor import ToolExecutor
-from app.agent.validator import PassThroughValidator, Validator
+from app.agent.validator import DefaultValidator, Validator
 from app.config import get_settings
 from app.llm.base import LLMClient
 from app.llm.factory import build_llm_client
@@ -62,12 +62,17 @@ def get_tool_executor() -> ToolExecutor:
 
 @lru_cache
 def get_validator() -> Validator:
-    return PassThroughValidator()
+    return DefaultValidator()
 
 
 @lru_cache
 def get_fallback_manager() -> FallbackManager:
-    return DefaultFallbackManager()
+    settings = get_settings()
+    return DefaultFallbackManager(
+        tool_executor=get_tool_executor(),
+        max_retries=settings.fallback_max_retries,
+        retry_delay_ms=settings.fallback_retry_delay_ms,
+    )
 
 
 @lru_cache

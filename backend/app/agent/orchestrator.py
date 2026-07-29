@@ -1,9 +1,10 @@
 """Agent Orchestrator.
 
 Wires the pipeline together: ConversationManager -> Planner -> ToolExecutor
--> Validator -> (FallbackManager | ItineraryBuilder). This is the single
+-> Validator -> FallbackManager -> ItineraryBuilder. This is the single
 place that knows the *order* of the agent loop; every other component only
-knows its own step.
+knows its own step, and each stage is only ever given the previous stage's
+output — the orchestrator never reaches back further than that.
 """
 
 from app.agent.conversation_manager import ConversationManager
@@ -61,16 +62,28 @@ class TravelAgentOrchestrator:
                 missing_slots=decision.missing_slots,
             )
 
-        results = self._tool_executor.execute_plan(decision)
-        validation = self._validator.validate(results)
-
-        if not validation.is_valid:
-            reply = self._fallback_manager.handle_validation_failure(validation)
+        try:
+            results = self._tool_executor.execute_plan(decision)
+        except Exception as exc:  # noqa: BLE001 - a broken tool must not crash the agent
+            logger.exception("Tool execution failed for session %s", state.session_id)
+            reply = self._fallback_manager.handle_execution_failure(exc)
             self._conversation_manager.add_assistant_message(state, reply)
             return ChatResponse(session_id=state.session_id, reply=reply)
 
-        itinerary = self._itinerary_builder.build(results)
+        validation = self._validator.validate(results)
+        fallback_outcome = self._fallback_manager.handle_validation_result(validation)
+
+        if not fallback_outcome.resolved:
+            reply = fallback_outcome.message or (
+                "I couldn't retrieve any options right now. Please try again in a moment."
+            )
+            self._conversation_manager.add_assistant_message(state, reply)
+            return ChatResponse(session_id=state.session_id, reply=reply)
+
+        itinerary = self._itinerary_builder.build(fallback_outcome.results)
         reply = itinerary.summary or "Here's what I found."
+        if fallback_outcome.message:
+            reply = f"{reply} {fallback_outcome.message}"
         self._conversation_manager.add_assistant_message(state, reply)
 
         return ChatResponse(
