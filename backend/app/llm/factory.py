@@ -13,6 +13,7 @@ from collections.abc import Callable
 
 from app.config import Settings
 from app.llm.base import LLMClient
+from app.llm.providers.gemini_client import GeminiLLMClient
 from app.llm.providers.mock_client import MockLLMClient
 from app.llm.providers.openai_client import OpenAILLMClient
 
@@ -31,9 +32,16 @@ def _build_openai(settings: Settings) -> LLMClient:
     )
 
 
+def _build_gemini(settings: Settings) -> LLMClient:
+    if not settings.llm_api_key:
+        raise RuntimeError("LLM_API_KEY is required when LLM_PROVIDER=gemini.")
+    return GeminiLLMClient(api_key=settings.llm_api_key, model=settings.llm_model)
+
+
 _PROVIDER_FACTORIES: dict[str, Callable[[Settings], LLMClient]] = {
     "mock": _build_mock,
     "openai": _build_openai,
+    "gemini": _build_gemini,
 }
 
 

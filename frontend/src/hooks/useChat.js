@@ -10,15 +10,20 @@ function nextMessageId() {
 
 /**
  * Owns the conversation state for the chat UI: message history, the
- * backend session id, loading/error state, and the sendMessage action.
- * Keeping this in one hook (rather than spread across components) is
- * what lets ChatWindow/ChatInput stay presentational.
+ * backend session id, loading/error state, the latest structured
+ * itinerary, and the sendMessage action. Keeping this in one hook (rather
+ * than spread across components) is what lets ChatWindow/ChatInput/
+ * ItineraryPanel all stay presentational.
  */
 export function useChat() {
   const [messages, setMessages] = useState([])
   const [sessionId, setSessionId] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
+  // Most recent non-null itinerary the backend has returned. Kept even
+  // when a later turn is a clarification question with no itinerary of
+  // its own, so the panel doesn't flash empty mid-refinement.
+  const [itinerary, setItinerary] = useState(null)
 
   const clearError = useCallback(() => setError(null), [])
 
@@ -42,6 +47,9 @@ export function useChat() {
         // it echoed back on every subsequent call for this conversation.
         const data = await sendChatMessage(text, sessionId)
         setSessionId(data.session_id)
+        if (data.itinerary) {
+          setItinerary(data.itinerary)
+        }
         setMessages((prev) => [
           ...prev,
           {
@@ -60,5 +68,5 @@ export function useChat() {
     [sessionId],
   )
 
-  return { messages, sessionId, isLoading, error, sendMessage, clearError }
+  return { messages, sessionId, isLoading, error, itinerary, sendMessage, clearError }
 }

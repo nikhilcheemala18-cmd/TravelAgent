@@ -4,6 +4,8 @@ pydantic>=2.7
 pydantic-settings>=2.3
 python-dotenv>=1.0
 
-# Only required when LLM_PROVIDER=openai (app/llm/providers/openai_client.py
-# imports it lazily); the default LLM_PROVIDER=mock needs no LLM SDK.
+# Provider SDKs — only required when that provider is selected via
+# LLM_PROVIDER; each is imported lazily by its own app/llm/providers/*.py
+# file. The default LLM_PROVIDER=mock needs neither.
 openai>=1.30
+google-genai>=1.0

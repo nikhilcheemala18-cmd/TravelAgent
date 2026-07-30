@@ -7,9 +7,15 @@ plays for app/tools/*. It makes no network calls.
 It only knows how to answer the one prompt shape the agent currently
 sends (see app/agent/prompts/extraction.py): given "trip details already
 collected" + "user message", pull out any newly mentioned trip details
-with the same regex heuristics Phase 2's RegexSlotExtractor used, and
-return them as a JSON object — mimicking exactly what a real LLM is
-instructed to return, so it's a valid stand-in for local dev/tests.
+with regex heuristics, and return them as a JSON object — mimicking what
+a real LLM is instructed to return, so it's a valid stand-in for local
+dev/tests.
+
+Deliberately limited: it recognizes explicit ISO dates (YYYY-MM-DD) but
+NOT relative expressions like "next Friday" or "15th August" — resolving
+those against "today" is exactly the kind of reasoning this mock exists
+to avoid reimplementing. Use a real provider (LLM_PROVIDER=openai, ...)
+to exercise that behavior.
 """
 
 import json
@@ -25,13 +31,30 @@ _ROUTE_RE = re.compile(
     re.IGNORECASE,
 )
 _DATE_RE = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
-_PASSENGERS_RE = re.compile(
+_PASSENGERS_DIGIT_RE = re.compile(
     r"\b(\d+)\s*(?:passengers?|people|travelers?|adults?|pax)\b", re.IGNORECASE
 )
-_BUDGET_RE = re.compile(
-    r"(?:budget(?:\s+of)?\s+\$?|\$)\s?(\d[\d,]*(?:\.\d+)?)\s*(?:dollars|usd)?",
+_NUMBER_WORDS = {
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+}
+_PASSENGERS_WORD_RE = re.compile(
+    r"\b(" + "|".join(_NUMBER_WORDS) + r")\s*(?:passengers?|people|travelers?|adults?)\b",
     re.IGNORECASE,
 )
+# "budget" followed by up to 20 non-digit characters (covers "of", "is
+# around", "is roughly", ...) then the amount; falls back to a bare
+# "$<amount>" if the word "budget" isn't used at all.
+_BUDGET_KEYWORD_RE = re.compile(r"\bbudget\b[^\d]{0,20}(\d[\d,]*(?:\.\d+)?)", re.IGNORECASE)
+_BUDGET_DOLLAR_RE = re.compile(r"\$\s?(\d[\d,]*(?:\.\d+)?)")
 _HOTEL_RATING_RE = re.compile(r"\b(\d(?:\.\d)?)\s*[- ]?star\b", re.IGNORECASE)
 
 
@@ -70,11 +93,15 @@ class MockLLMClient(LLMClient):
         if len(dates) >= 2:
             extracted["return_date"] = dates[1]
 
-        passengers_match = _PASSENGERS_RE.search(message)
+        passengers_match = _PASSENGERS_DIGIT_RE.search(message)
         if passengers_match:
             extracted["passengers"] = int(passengers_match.group(1))
+        else:
+            word_match = _PASSENGERS_WORD_RE.search(message)
+            if word_match:
+                extracted["passengers"] = _NUMBER_WORDS[word_match.group(1).lower()]
 
-        budget_match = _BUDGET_RE.search(message)
+        budget_match = _BUDGET_KEYWORD_RE.search(message) or _BUDGET_DOLLAR_RE.search(message)
         if budget_match:
             extracted["budget"] = float(budget_match.group(1).replace(",", ""))
 

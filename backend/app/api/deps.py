@@ -9,7 +9,7 @@ and nowhere else.
 from functools import lru_cache
 
 from app.agent.conversation_manager import ConversationManager
-from app.agent.extraction import LLMSlotExtractor, SlotExtractor
+from app.agent.extraction import LLMExtractor, SlotExtractor
 from app.agent.fallback_manager import DefaultFallbackManager, FallbackManager
 from app.agent.itinerary_builder import DefaultItineraryBuilder, ItineraryBuilder
 from app.agent.orchestrator import TravelAgentOrchestrator
@@ -46,7 +46,7 @@ def get_llm_client() -> LLMClient:
 
 @lru_cache
 def get_slot_extractor() -> SlotExtractor:
-    return LLMSlotExtractor(llm_client=get_llm_client())
+    return LLMExtractor(llm_client=get_llm_client())
 
 
 @lru_cache

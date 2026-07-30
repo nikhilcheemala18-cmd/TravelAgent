@@ -28,9 +28,16 @@ class OpenAILLMClient(LLMClient):
         self._model = model
 
     def complete(self, *, system_prompt: str, user_prompt: str) -> str:
+        # response_format is an OpenAI-specific optimization: it constrains
+        # the API to emit syntactically valid JSON. It stays entirely
+        # inside this provider — the LLMClient interface (and everything
+        # that calls it) has no idea this exists, so a provider without an
+        # equivalent (or with a different one, e.g. Gemini's
+        # response_mime_type) is a drop-in replacement either way.
         response = self._client.chat.completions.create(
             model=self._model,
             temperature=0,
+            response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},

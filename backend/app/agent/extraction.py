@@ -1,14 +1,17 @@
 """Slot extraction for the Planner.
 
-Turns free-form user text — plus the trip details already known — into a
-partial set of TravelSession field updates. All natural-language
-understanding is delegated to an injected LLMClient; this module's own
-job is prompt assembly and turning the LLM's response into data the
-Planner/ConversationManager can trust, not the extraction itself.
+Turns free-form, natural-language user text — plus the trip details
+already known — into TravelSession field updates. All natural-language
+understanding (city names in any phrasing, spelled-out numbers,
+approximate amounts, relative dates) is delegated to an injected
+LLMClient; this module's own job is prompt assembly and turning the LLM's
+response into data the Planner/ConversationManager can trust, not the
+extraction itself.
 """
 
 import json
 from abc import ABC, abstractmethod
+from datetime import date
 from typing import Any
 
 from pydantic import ValidationError
@@ -35,23 +38,27 @@ class SlotExtractionError(Exception):
 class SlotExtractor(ABC):
     @abstractmethod
     def extract(self, message: str, session: TravelSession) -> dict[str, Any]:
-        """Return the TravelSession field values newly found in `message`.
+        """Return the TravelSession field values found in `message`.
 
         `session` is the trip state already collected, provided as context
-        so the extractor can tell what's already known from what's new.
-        Fields not mentioned must be omitted from the returned dict (not
-        set to None), so callers can tell "not mentioned" apart from
-        "explicitly cleared".
+        so the extractor can tell what's already known from what's new. A
+        field not mentioned in `message` must come back either omitted or
+        explicitly `None` — both mean "not mentioned"; callers (see
+        ConversationManager.update_session) only ever apply non-`None`
+        values, so a caller never needs to distinguish the two.
         """
 
 
-class LLMSlotExtractor(SlotExtractor):
+class LLMExtractor(SlotExtractor):
     """Structured-extraction SlotExtractor backed by an LLMClient.
 
     Provider-agnostic: it depends only on the LLMClient interface, so
     switching between OpenAI / Gemini / Claude / Ollama / the offline mock
     is a Settings/DI change (see app/llm/factory.py, app/api/deps.py), not
-    a code change here.
+    a code change here. This class never executes a tool, never builds an
+    ExecutionPlan, never calls a travel API, and never touches
+    ConversationState — it only turns a message into a validated dict of
+    field updates for the Planner to act on.
     """
 
     def __init__(self, llm_client: LLMClient) -> None:
@@ -60,7 +67,9 @@ class LLMSlotExtractor(SlotExtractor):
     def extract(self, message: str, session: TravelSession) -> dict[str, Any]:
         raw_response = self._llm_client.complete(
             system_prompt=EXTRACTION_SYSTEM_PROMPT,
-            user_prompt=build_extraction_user_prompt(message=message, session=session),
+            user_prompt=build_extraction_user_prompt(
+                message=message, session=session, reference_date=date.today().isoformat()
+            ),
         )
         return self._parse_and_validate(raw_response, session)
 

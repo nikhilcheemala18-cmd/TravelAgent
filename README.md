@@ -185,18 +185,36 @@ Set via `.env` / environment variables, read in `app/config.py::Settings`:
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `LLM_PROVIDER` | `mock` | Which `LLMClient` `app/llm/factory.py` builds. `mock` needs no credentials and runs fully offline. |
-| `LLM_API_KEY` | _(empty)_ | Required when `LLM_PROVIDER=openai`. |
-| `LLM_MODEL` | `gpt-4o-mini` | Model name passed to the provider. |
-| `LLM_BASE_URL` | _(empty)_ | Optional override for OpenAI-compatible endpoints (e.g. a local Ollama server). |
+| `LLM_PROVIDER` | `mock` | Which `LLMClient` `app/llm/factory.py` builds: `mock` (offline, no credentials), `openai`, or `gemini`. |
+| `LLM_API_KEY` | _(empty)_ | Required for `openai`/`gemini`. |
+| `LLM_MODEL` | `gpt-4o-mini` | Model name passed to the provider — e.g. `gemini-flash-latest` for Gemini. Provider-specific; check what your API key currently has access to (model availability shifts over time, e.g. a specific dated model can be retired for new keys — a `-latest` alias avoids that). |
+| `LLM_BASE_URL` | _(empty)_ | Optional override for OpenAI-compatible endpoints (e.g. a local Ollama server). Not used by `gemini`. |
 
-To add a new provider (Gemini, Claude, a local Ollama client, ...):
+To add a new provider (Claude, a local Ollama client, ...):
 1. Add `app/llm/providers/<name>_client.py` implementing `LLMClient.complete`.
 2. Register it in `app/llm/factory.py::_PROVIDER_FACTORIES`.
 3. Set `LLM_PROVIDER=<name>` in `.env`.
 
-Nothing in `app/agent/` changes — `Planner` and `LLMSlotExtractor` only ever
+`gemini` (`app/llm/providers/gemini_client.py`, via the `google-genai`
+SDK) is implemented as a second worked example alongside `openai` —
+useful as a reference when adding Claude or another provider.
+
+Nothing in `app/agent/` changes — `Planner` and `LLMExtractor` only ever
 depend on the `LLMClient` interface.
+
+### Natural-language extraction
+
+`LLMExtractor` (`app/agent/extraction.py`) anchors every extraction call
+to the current date, so the prompt (`app/agent/prompts/extraction.py`)
+can instruct the model to resolve relative expressions ("next Friday",
+"tomorrow", "in two weeks") into absolute ISO 8601 dates instead of only
+accepting fixed formats. The model is asked to always return all seven
+`TravelSession` fields, `null` for anything not mentioned — the
+`OpenAILLMClient` additionally requests JSON mode (`response_format`) as
+a provider-side guarantee of syntactically valid JSON, entirely inside
+that provider file. `MockLLMClient` (the default, offline) only
+recognizes explicit ISO dates — resolving relative phrases needs a real
+provider.
 
 ## Replacing mocks with real travel APIs
 
