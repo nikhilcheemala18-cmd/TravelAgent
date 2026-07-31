@@ -1,5 +1,36 @@
 @import "tailwindcss";
 
+/**
+ * Global theme — the single source of truth for the app's colors and
+ * card shadows. Components must reference these tokens (bg-primary,
+ * text-ink-muted, shadow-card, ...) rather than hardcoding hex values or
+ * Tailwind's default gray/blue/etc palette, so the whole app can be
+ * re-themed by editing values here only.
+ *
+ * `--color-premium` has no spec'd hex (the brief asked for "Premium" hotel
+ * tier badges to be purple without giving one) — chosen to sit
+ * comfortably alongside the rest of the palette.
+ */
+@theme {
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-accent: #10b981;
+  --color-background: #f8fafc;
+  --color-surface: #f1f5f9;
+  --color-card: #ffffff;
+  --color-border: #cbd5e1;
+  --color-ink: #0f172a; /* Text Primary */
+  --color-ink-muted: #64748b; /* Text Secondary */
+  --color-warning: #f59e0b;
+  --color-success: #10b981;
+  --color-error: #ef4444;
+  --color-premium: #7c3aed;
+  --color-gold: #d4a017;
+
+  --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.08);
+  --shadow-card-hover: 0 6px 16px rgba(15, 23, 42, 0.12);
+}
+
 html,
 body,
 #root {
@@ -8,5 +39,42 @@ body,
 
 body {
   margin: 0;
-  background-color: #f3f4f6;
+  background-color: var(--color-background);
+  color: var(--color-ink);
+  line-height: 1.5;
+}
+
+@keyframes message-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-message-in {
+  animation: message-in 0.22s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-message-in,
+  .animate-fade-in {
+    animation: none;
+  }
 }

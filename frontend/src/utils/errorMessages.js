@@ -4,6 +4,10 @@
  * same network/backend-error handling.
  */
 export function getFriendlyErrorMessage(error) {
+  if (error?.code === 'ECONNABORTED' || /timeout/i.test(error?.message ?? '')) {
+    return 'The request took too long to respond. Please try again.'
+  }
+
   if (error?.response) {
     // The backend responded, but with a non-2xx status.
     const detail = error.response.data?.detail

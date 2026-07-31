@@ -9,7 +9,7 @@ export default function WarningCard({ text }) {
   return (
     <div
       role="alert"
-      className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+      className="animate-fade-in border-warning/30 bg-warning/10 text-ink rounded-lg border px-4 py-3 text-sm"
     >
       {text}
     </div>

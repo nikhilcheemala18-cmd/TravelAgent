@@ -1,11 +1,13 @@
-import InfoRow from './InfoRow'
+import StatItem from '../common/StatItem'
+import Badge from '../common/Badge'
 import { formatCurrency } from '../../utils/formatCurrency'
 import { formatFieldLabel } from '../../utils/formatFieldLabel'
+import { formatCabinClass, formatStops } from '../../utils/travelLabels'
 
 // Fields given their own dedicated layout below. Anything else the
-// backend adds to a flight option later (layovers, cabin class, ...)
-// still renders automatically via the generic loop — no card change
-// needed, and nothing here assumes a specific provider's field set.
+// backend adds to a flight option later still renders automatically via
+// the generic loop — no card change needed, and nothing here assumes a
+// specific provider's field set.
 const FEATURED_FIELDS = new Set([
   'airline',
   'flight_number',
@@ -13,38 +15,67 @@ const FEATURED_FIELDS = new Set([
   'arrival_time',
   'price',
   'currency',
+  'duration',
+  'cabin_class',
+  'stops',
 ])
 
-export default function FlightCard({ flight }) {
+// Cheapest/Fastest/Best Value map to green/amber/blue per the design spec.
+const BADGE_TONE = { Cheapest: 'success', Fastest: 'warning', 'Best Value': 'primary' }
+
+export default function FlightCard({ flight, badges = [] }) {
   if (!flight) return null
 
-  const { airline, flight_number: flightNumber, departure_time: departureTime, arrival_time: arrivalTime, price, currency } = flight
+  const {
+    airline,
+    flight_number: flightNumber,
+    departure_time: departureTime,
+    arrival_time: arrivalTime,
+    duration,
+    price,
+    currency,
+    cabin_class: cabinClass,
+    stops,
+  } = flight
 
   const extraFields = Object.entries(flight).filter(
     ([key, value]) => !FEATURED_FIELDS.has(key) && value != null && value !== '',
   )
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="group border-border bg-card shadow-card hover:shadow-card-hover rounded-xl border p-4 transition hover:-translate-y-0.5 sm:p-5">
+      {badges.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {badges.map((label) => (
+            <Badge key={label} tone={BADGE_TONE[label] ?? 'neutral'}>
+              {label}
+            </Badge>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-medium text-gray-900">{airline || 'Flight option'}</p>
-          {flightNumber && <p className="text-xs text-gray-500">Flight {flightNumber}</p>}
+          <p className="text-ink font-semibold">{airline || 'Flight option'}</p>
+          {flightNumber && <p className="text-ink-muted text-xs">Flight {flightNumber}</p>}
         </div>
         {price != null && (
-          <p className="whitespace-nowrap text-base font-semibold text-gray-900">
+          <p className="text-ink text-lg font-bold whitespace-nowrap">
             {formatCurrency(price, currency)}
           </p>
         )}
       </div>
 
-      <div className="mt-3 flex flex-col gap-1.5">
-        <InfoRow label="Departs" value={departureTime} />
-        <InfoRow label="Arrives" value={arrivalTime} />
+      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+        <StatItem label="Departs" value={departureTime} />
+        <StatItem label="Arrives" value={arrivalTime} />
+        <StatItem label="Duration" value={duration} />
+        <StatItem label="Stops" value={stops != null ? formatStops(stops) : null} />
+        <StatItem label="Cabin" value={cabinClass ? formatCabinClass(cabinClass) : null} />
         {extraFields.map(([key, value]) => (
-          <InfoRow key={key} label={formatFieldLabel(key)} value={String(value)} />
+          <StatItem key={key} label={formatFieldLabel(key)} value={String(value)} />
         ))}
-      </div>
+      </dl>
     </div>
   )
 }

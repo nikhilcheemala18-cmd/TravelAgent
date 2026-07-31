@@ -20,8 +20,65 @@ Implemented so far:
 - **ItineraryBuilder** and **ResponseBuilder** are real (Phase 6) — turn
   recovered tool results into a structured, frontend-ready `Itinerary` and
   a rich `ChatResponse`, handling partial results gracefully.
-- Tools (`flight_search`, `hotel_search`, `car_rental_search`) still
-  return mock data — the only remaining placeholder.
+- `flight_search` and `hotel_search` return realistic, varied mock data
+  (8-10 flights, 10-15 hotels per search, spanning cabin classes/stop
+  counts/price tiers), reject unsupported destinations/routes, and filter
+  by budget/rating — see "Conversation experience" below.
+  `car_rental_search` still returns a single static mock result and isn't
+  currently planned by the Planner.
+- Only **origin, destination, departure date, and passenger count** are
+  ever required to plan a trip — return date, budget, and hotel rating
+  are optional preferences that refine the search but never block it.
+
+## Conversation experience
+
+A few things beyond the core pipeline make the agent feel less like a
+form and more like a travel agent:
+
+- **Natural clarification questions** (`app/agent/planner.py`) — "Where
+  would you like to go?" / "When are you planning to leave?" /
+  "How many people will be travelling?", never a request for a specific
+  date format. When exactly one required slot is missing, the Planner
+  asks a direct question; several missing slots combine into one natural
+  sentence.
+- **Corrections** ("Actually make it Bangalore", "Change departure to
+  August 20", "Increase the budget to 50000") are handled by the
+  extraction prompt (`app/agent/prompts/extraction.py`): a correction
+  replaces the old value for whichever field was mentioned, and every
+  other field is left untouched — the same non-null-only merge
+  `ConversationManager.update_session` has always done.
+- **Session business-rule validation** (`app/agent/session_rules.py`,
+  called from `Planner`) — a return date before departure, a
+  non-positive passenger count/budget, or an out-of-range hotel rating
+  all produce a conversational correction request instead of silently
+  proceeding or crashing. Independent of `Validator`, which checks *tool
+  results*, not the traveler's inputs.
+- **Unsupported destinations/routes** are never fabricated. The mock
+  tools (`app/tools/flight_search.py`, `hotel_search.py`) check the
+  origin/destination against `app/tools/mock_data.py`'s
+  `SUPPORTED_DESTINATIONS` — the single source of truth for "what this
+  demo dataset knows about," read dynamically wherever it's needed, never
+  duplicated — and return a successful-but-empty result with a
+  conversational `empty_reason` (e.g. asking for a supported city, or
+  explaining that origin and destination can't be the same place) rather
+  than an error or invented data.
+- **Empty results after filtering** — `budget`/`hotel_rating`, when set,
+  are passed to the tools as real search filters (`max_price`/
+  `min_rating`); if nothing matches, the tool explains why and suggests
+  adjusting budget/rating/dates, the same way an unsupported destination
+  does. `Validator` relays whatever `empty_reason` a tool provides instead
+  of a generic templated message.
+- **Tool failures never leak internals** — `ItineraryBuilder` maps a
+  failed tool's `FailureReason` category to a fixed, conversational
+  message (`app/agent/itinerary_builder.py::_FAILURE_MESSAGES`); the raw
+  exception/error text from `ToolExecutor` is never shown to the user.
+  `FallbackManager`'s existing retry behavior still applies first, so a
+  transient failure recovers before this is ever reached.
+
+All of this lives in the Planner/tool layer — `ConversationManager`,
+`Validator`, and `FallbackManager` are unchanged, and `ItineraryBuilder`
+only gained a generic (not mock-specific) failure-message lookup and
+duplicate-warning removal.
 
 ## Why "agent" and not "chatbot"
 
@@ -215,6 +272,31 @@ a provider-side guarantee of syntactically valid JSON, entirely inside
 that provider file. `MockLLMClient` (the default, offline) only
 recognizes explicit ISO dates — resolving relative phrases needs a real
 provider.
+
+## Mock flight/hotel data
+
+`app/tools/flight_search.py` and `app/tools/hotel_search.py` generate
+randomized-but-realistic result sets on every call, not a single fixed
+result — enough diversity for ranking/recommendation logic (cheapest
+flight, best-rated hotel, budget checks) to have something meaningful to
+choose between:
+
+- **Flights** (`FlightOption` in `app/schemas/tools.py`): 8-10 options,
+  drawn from 10 fictional airlines, with `duration`, `cabin_class`
+  (`economy`/`premium_economy`/`business`/`first`, weighted so most
+  results are economy) and `stops` (0-2) — price scales with both.
+- **Hotels** (`HotelOption`): 10-15 options, each with `amenities`,
+  `location`, `review_score`, and `hotel_type`
+  (`hotel`/`resort`/`boutique`/`hostel`/`apartment`/`guesthouse`).
+  Every result set is guaranteed at least one budget, one mid-range, and
+  one premium property (by star rating/price/amenity count) rather than
+  leaving that to random chance.
+
+None of this touches `Planner`, `ConversationManager`, `Validator`, or
+`FallbackManager` — `Validator`'s per-option schema check and
+`ItineraryBuilder`'s recommendation logic already worked generically off
+whatever `FlightOption`/`HotelOption` contain, so richer mock data flows
+through unchanged.
 
 ## Replacing mocks with real travel APIs
 

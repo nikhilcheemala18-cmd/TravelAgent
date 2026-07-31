@@ -141,10 +141,16 @@ class DefaultValidator(Validator):
         options = result.returned_data["options"]
 
         if not options:
+            # The tool itself is in the best position to explain *why* —
+            # e.g. an unsupported destination or nothing within budget —
+            # so relay that verbatim rather than a generic templated
+            # message when it provided one. Validator doesn't need to
+            # understand the reason, only pass it along.
+            message = result.returned_data.get("empty_reason") or f"{result.tool_name} returned no options."
             return [
                 ValidationIssue(
                     tool_name=result.tool_name,
-                    message=f"{result.tool_name} returned no options.",
+                    message=message,
                     severity=ValidationSeverity.WARNING,
                     reason=FailureReason.EMPTY_RESPONSE,
                 )

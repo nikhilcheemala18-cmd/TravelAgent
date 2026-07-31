@@ -17,13 +17,13 @@ from app.schemas.conversation import ConversationState, Message
 from app.schemas.travel_session import TravelSession
 from app.session.store import SessionStore
 
-# Slots that must be filled before an ExecutionPlan can be built.
-# budget and hotel_rating are optional preferences, not required to plan.
+# Slots that must be filled before an ExecutionPlan can be built. Everything
+# else (return_date, budget, hotel_rating, ...) is an optional preference —
+# never blocks execution, just refines it when the traveler provides it.
 REQUIRED_TRAVEL_SLOTS: tuple[str, ...] = (
     "origin",
     "destination",
     "departure_date",
-    "return_date",
     "passengers",
 )
 

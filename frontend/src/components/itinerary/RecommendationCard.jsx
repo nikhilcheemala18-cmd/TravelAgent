@@ -7,7 +7,7 @@ export default function RecommendationCard({ text }) {
   if (!text) return null
 
   return (
-    <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+    <div className="animate-fade-in border-primary/20 bg-primary/5 text-ink rounded-lg border px-4 py-3 text-sm">
       {text}
     </div>
   )

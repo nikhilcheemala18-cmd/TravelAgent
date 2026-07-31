@@ -1,3 +1,4 @@
+import { MapPinned } from 'lucide-react'
 import InfoRow from './InfoRow'
 import { formatCurrency } from '../../utils/formatCurrency'
 
@@ -19,9 +20,12 @@ export default function TripSummaryCard({ travelerInfo, tripSummary }) {
   const currency = tripSummary?.currency
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-      <h3 className="mb-3 text-base font-semibold text-gray-900">Trip Summary</h3>
-      <div className="flex flex-col gap-1.5">
+    <div className="animate-fade-in border-border bg-card shadow-card rounded-xl border p-4 sm:p-6">
+      <h3 className="text-ink mb-4 flex items-center gap-2 text-lg font-bold">
+        <MapPinned className="text-primary h-5 w-5" aria-hidden="true" />
+        Trip Summary
+      </h3>
+      <div className="flex flex-col gap-2">
         {TRAVELER_FIELDS.map(([key, label]) => (
           <InfoRow key={key} label={label} value={travelerInfo[key]} />
         ))}
@@ -37,6 +41,7 @@ export default function TripSummaryCard({ travelerInfo, tripSummary }) {
           <InfoRow
             label="Estimated Total"
             value={formatCurrency(tripSummary.total_estimated_cost, currency)}
+            valueClassName="text-accent text-right text-base font-bold"
           />
         )}
       </div>

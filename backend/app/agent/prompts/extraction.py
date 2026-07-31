@@ -6,7 +6,10 @@ consumes its output. Bump the version note below whenever the wording (or
 the fields it describes) changes, since that's effectively an API contract
 with whichever model is configured.
 
-Prompt version: v2 (2026-07) — added reference-date anchoring for relative
+Prompt version: v3 (2026-07) — added explicit correction/update handling
+("Actually make it Bangalore", "Change departure to August 20", "Increase
+budget to 50000") so a corrected field replaces its old value instead of
+being combined with it. v2 added reference-date anchoring for relative
 dates ("next Friday", "tomorrow", "in two weeks") and switched to a
 fixed-shape response (all fields always present, null when not mentioned)
 so it pairs cleanly with JSON-mode/structured-output providers.
@@ -53,6 +56,13 @@ output the resolved value in ISO 8601 (YYYY-MM-DD) - never a relative \
 phrase, and never any other format.
   - "budget" must be a plain number: no currency symbols, no thousands \
 separators, no words like "around" or "roughly" inside the value itself.
+  - The traveler may correct or update a value already collected (e.g. \
+"Actually make it Bangalore", "Change the departure to August 20", \
+"Increase the budget to 50000"). Extract the NEW value for whichever \
+field is being corrected - it REPLACES the old one; never combine or add \
+it to the previous value. Only the field(s) actually mentioned in the \
+correction go in your response - everything else stays null, exactly as \
+if it hadn't been mentioned.
 """
 
 

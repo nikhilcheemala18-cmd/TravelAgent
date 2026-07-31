@@ -22,10 +22,26 @@ from app.schemas.itinerary import Itinerary, TravelerInformation, TripSummary, U
 from app.schemas.tool_execution import ToolExecutionResult
 from app.schemas.tools import CarRentalOption, FlightOption, HotelOption
 from app.schemas.travel_session import TravelSession
-from app.schemas.validation import ValidationIssue, ValidationResult
+from app.schemas.validation import FailureReason, ValidationIssue, ValidationResult
 from app.utils.logging import get_logger
 
 logger = get_logger(__name__)
+
+# Conversational, category-based explanations for genuine tool failures.
+# Deliberately never derived from the raw exception/error text a tool or
+# ToolExecutor produced — that text can contain implementation details
+# (exception messages, internal identifiers) that have no business
+# reaching the user. EMPTY_RESPONSE isn't listed here: that's not a
+# failure, and the tool's own conversational explanation for it (surfaced
+# via Validator) is already safe to show as-is.
+_FAILURE_MESSAGES: dict[FailureReason, str] = {
+    FailureReason.MISSING_TOOL: "That part of the search isn't available right now.",
+    FailureReason.EXECUTION_FAILED: "Something went wrong while searching. Please try again in a moment.",
+    FailureReason.TIMEOUT: "The search took too long to respond. Please try again in a moment.",
+    FailureReason.MALFORMED_DATA: "We received unexpected data from the search. Please try again.",
+    FailureReason.INCOMPLETE_DATA: "We received incomplete data from the search. Please try again.",
+}
+_DEFAULT_FAILURE_MESSAGE = "This information is temporarily unavailable."
 
 
 @dataclass(frozen=True)
@@ -90,7 +106,11 @@ class DefaultItineraryBuilder(ItineraryBuilder):
         sections: dict[str, list] = {}
         unavailable: list[UnavailableService] = []
         notices: list[str] = []
-        warnings: list[str] = [issue.message for issue in validation.warnings]
+        # dict.fromkeys dedupes while preserving order — flights and hotels
+        # can independently report the identical explanation (e.g. the
+        # same "unsupported destination" text from both tools), and
+        # showing that twice would look like a glitch, not a feature.
+        warnings: list[str] = list(dict.fromkeys(issue.message for issue in validation.warnings))
 
         for spec in _SECTION_SPECS:
             result = results_by_tool.get(spec.tool_name)
@@ -109,7 +129,7 @@ class DefaultItineraryBuilder(ItineraryBuilder):
             unavailable.append(
                 UnavailableService(
                     service=spec.display_name,
-                    reason=self._failure_reason(spec.tool_name, issues_by_tool, result),
+                    reason=self._failure_reason(spec.tool_name, issues_by_tool),
                 )
             )
             if spec.tool_name in fallback.unresolved_tools:
@@ -174,14 +194,16 @@ class DefaultItineraryBuilder(ItineraryBuilder):
 
     @staticmethod
     def _failure_reason(
-        tool_name: ToolName,
-        issues_by_tool: dict[ToolName, list[ValidationIssue]],
-        result: ToolExecutionResult,
+        tool_name: ToolName, issues_by_tool: dict[ToolName, list[ValidationIssue]]
     ) -> str:
+        """A conversational, sanitized explanation for a FAILED result —
+        never the raw error/exception text (see _FAILURE_MESSAGES above),
+        so a broken tool or an unexpected exception can never leak
+        implementation details into the itinerary."""
         issues = issues_by_tool.get(tool_name) or []
-        if issues:
-            return issues[0].message
-        return result.error_message or "Temporarily unavailable."
+        if issues and issues[0].reason in _FAILURE_MESSAGES:
+            return _FAILURE_MESSAGES[issues[0].reason]
+        return _DEFAULT_FAILURE_MESSAGE
 
     # -- derived sections -----------------------------------------------------
 
