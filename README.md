@@ -1,9 +1,43 @@
-# Flyo — AI Travel Booking Agent (Backend)
+# AI Travel Booking Agent
 
-FastAPI backend for an AI *agent* (not a scripted chatbot) that plans and
-executes travel-booking tool calls on behalf of a user.
+**Live demo:** [travel-agent-ace-5399.vercel.app](https://travel-agent-ace-5399.vercel.app)
+
+A conversational travel-booking agent — not a scripted chatbot — built to
+demonstrate a real agentic pipeline: an LLM plans what to do, a tool layer
+executes it, and dedicated stages validate results, retry failures, and
+turn everything into a structured itinerary. Chat naturally ("I want to fly
+from Hyderabad to Goa next Friday for 2 people, budget 40k") and the agent
+asks only for what's actually missing, handles corrections mid-conversation,
+and returns real flight/hotel options with recommendations.
+
+## Key Features
+
+- **Natural-language trip planning** — free-text input, not a form; the
+  agent extracts trip slots (origin, destination, dates, passengers,
+  budget, hotel rating) and asks conversational follow-up questions only
+  for what's missing.
+- **Mid-conversation corrections** — "Actually make it Bangalore" or
+  "increase the budget to 50000" update just that field without resetting
+  the rest of the trip.
+- **Resilient execution** — a Validator/FallbackManager pair verifies tool
+  results and retries only genuinely transient failures, with bounded
+  retries so nothing hangs or loops forever.
+- **Provider-agnostic LLM layer** — runs fully offline with a mock LLM
+  (no API key needed to try it locally) or plug in OpenAI/Gemini via one
+  config variable.
+- **Deployed full stack** — FastAPI backend + React chat frontend, live on
+  Vercel.
+
+## Architecture at a Glance
+
+FastAPI backend for an AI *agent* that plans and executes travel-booking
+tool calls on behalf of a user, via a seven-stage pipeline (Conversation
+Manager → Planner → Tool Executor → Validator → Fallback Manager →
+Itinerary Builder → Response Builder) detailed below.
 
 For the React chat frontend, see [frontend/README.md](frontend/README.md).
+
+## Implementation Status
 
 Implemented so far:
 - **ConversationManager** is real (Phase 2) — session state, slot
