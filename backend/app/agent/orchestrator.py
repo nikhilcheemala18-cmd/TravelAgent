@@ -47,7 +47,11 @@ class TravelAgentOrchestrator:
         self._conversation_manager.add_user_message(state, request.message)
 
         try:
-            decision = self._planner.create_plan(request.message, state.travel_session)
+            decision = self._planner.create_plan(
+                request.message,
+                state.travel_session,
+                state.pending_city_confirmation,
+            )
         except Exception as exc:  # noqa: BLE001 - planner failures must not crash the agent
             logger.exception("Planner failed for session %s", state.session_id)
             reply = self._fallback_manager.handle_planning_failure(exc)
@@ -57,6 +61,7 @@ class TravelAgentOrchestrator:
         # The planner always returns the session with any newly extracted
         # values merged in, even when it still needs clarification.
         state.travel_session = decision.session
+        state.pending_city_confirmation = decision.pending_city_confirmation
 
         if isinstance(decision, ClarificationAction):
             self._conversation_manager.add_assistant_message(state, decision.question)

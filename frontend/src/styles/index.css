@@ -72,6 +72,27 @@ body {
   animation: fade-in 0.25s ease-out;
 }
 
+.chat-visual-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.chat-visual-panel::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.84), rgba(241, 245, 249, 0.94)),
+    url("../assets/travel-chat-bg.svg") center / cover no-repeat;
+}
+
+.chat-visual-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-message-in,
   .animate-fade-in {

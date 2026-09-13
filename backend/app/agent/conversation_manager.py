@@ -88,4 +88,5 @@ class ConversationManager:
         if state is None:
             return
         state.travel_session = TravelSession()
+        state.pending_city_confirmation = None
         self._session_store.save(state)

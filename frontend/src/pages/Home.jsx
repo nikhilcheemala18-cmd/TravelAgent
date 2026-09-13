@@ -61,7 +61,7 @@ export default function Home() {
       )}
 
       <div className="flex flex-1 flex-col lg:flex-row lg:overflow-hidden">
-        <div className="bg-surface flex flex-col lg:flex-1 lg:overflow-hidden">
+        <div className="chat-visual-panel bg-surface flex flex-col lg:flex-1 lg:overflow-hidden">
           <ChatWindow
             messages={messages}
             isLoading={isLoading}

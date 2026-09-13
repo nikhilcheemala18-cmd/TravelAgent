@@ -31,6 +31,8 @@ SUPPORTED_DESTINATIONS: tuple[str, ...] = (
     "Tokyo",
     "Sydney",
     "Mumbai",
+    "Chennai",
+    "Kolkata",
     "Delhi",
     "Bengaluru",
     "Hyderabad",

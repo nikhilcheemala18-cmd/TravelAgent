@@ -23,10 +23,17 @@ class Message(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class PendingCityConfirmation(BaseModel):
+    field: str
+    raw_value: str
+    suggested_value: str
+
+
 class ConversationState(BaseModel):
     session_id: str = Field(default_factory=lambda: str(uuid4()))
     messages: list[Message] = Field(default_factory=list)
     travel_session: TravelSession = Field(default_factory=TravelSession)
+    pending_city_confirmation: PendingCityConfirmation | None = None
 
 
 class ChatRequest(BaseModel):

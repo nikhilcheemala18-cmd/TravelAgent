@@ -11,6 +11,7 @@ an ExecutionPlan's steps is the ToolExecutor's job.
 from pydantic import BaseModel, Field
 
 from app.schemas.common import ToolName
+from app.schemas.conversation import PendingCityConfirmation
 from app.schemas.travel_session import TravelSession
 
 
@@ -32,6 +33,7 @@ class ExecutionPlan(BaseModel):
 
     session: TravelSession
     steps: list[ExecutionStep] = Field(default_factory=list)
+    pending_city_confirmation: PendingCityConfirmation | None = None
 
     def ordered_steps(self) -> list[ExecutionStep]:
         return sorted(self.steps, key=lambda step: step.priority)
@@ -48,3 +50,4 @@ class ClarificationAction(BaseModel):
     session: TravelSession
     missing_slots: list[str]
     question: str
+    pending_city_confirmation: PendingCityConfirmation | None = None

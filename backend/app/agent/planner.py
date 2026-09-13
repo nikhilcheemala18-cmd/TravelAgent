@@ -24,11 +24,20 @@ stays focused on the planning decision itself.
 
 from abc import ABC, abstractmethod
 
+from app.agent.city_resolution import (
+    canonical_display,
+    extract_replacement_city,
+    is_affirmative,
+    is_negative,
+    resolve_city,
+    resolve_city_updates,
+)
 from app.agent.conversation_manager import ConversationManager
 from app.agent.extraction import SlotExtractor
 from app.agent.session_rules import SessionRuleViolation, validate_session
 from app.schemas.agent import ClarificationAction, ExecutionPlan, ExecutionStep
 from app.schemas.common import ToolName
+from app.schemas.conversation import PendingCityConfirmation
 from app.schemas.travel_session import TravelSession
 
 # Direct, conversational questions used when exactly one required slot is
@@ -54,7 +63,10 @@ _SLOT_PROMPTS: dict[str, str] = {
 class Planner(ABC):
     @abstractmethod
     def create_plan(
-        self, message: str, session: TravelSession
+        self,
+        message: str,
+        session: TravelSession,
+        pending_city_confirmation: PendingCityConfirmation | None = None,
     ) -> ClarificationAction | ExecutionPlan:
         """Produce the next planning decision for the given message and
         current TravelSession. Must never execute a tool."""
@@ -79,10 +91,67 @@ class LLMPlanner(Planner):
         self._extractor = extractor
 
     def create_plan(
-        self, message: str, session: TravelSession
+        self,
+        message: str,
+        session: TravelSession,
+        pending_city_confirmation: PendingCityConfirmation | None = None,
     ) -> ClarificationAction | ExecutionPlan:
+        if pending_city_confirmation is not None:
+            return self._handle_pending_city_confirmation(
+                message, session, pending_city_confirmation
+            )
+
         extracted = self._extractor.extract(message, session)
+        extracted, city_issue = resolve_city_updates(extracted)
+        if city_issue is not None:
+            partial_session = self._conversation_manager.update_session(session, extracted)
+            return self._city_clarification(partial_session, city_issue)
+
         updated_session = self._conversation_manager.update_session(session, extracted)
+        return self._decision_for_session(updated_session)
+
+    def _handle_pending_city_confirmation(
+        self,
+        message: str,
+        session: TravelSession,
+        pending: PendingCityConfirmation,
+    ) -> ClarificationAction | ExecutionPlan:
+        if is_affirmative(message):
+            updated_session = self._conversation_manager.update_session(
+                session, {pending.field: pending.suggested_value}
+            )
+            return self._decision_for_session(updated_session)
+
+        replacement = extract_replacement_city(message)
+        if is_negative(message) and not replacement:
+            return ClarificationAction(
+                session=session,
+                missing_slots=[pending.field],
+                question=f"Which {pending.field.replace('_', ' ')} city did you mean?",
+            )
+
+        if replacement:
+            result = resolve_city(pending.field, replacement)
+            if result.status == "accepted":
+                updated_session = self._conversation_manager.update_session(
+                    session, {pending.field: result.canonical_value}
+                )
+                return self._decision_for_session(updated_session)
+            return self._city_clarification(session, result)
+
+        return ClarificationAction(
+            session=session,
+            missing_slots=[pending.field],
+            question=(
+                f"Please reply yes to use {canonical_display(pending.suggested_value)}, "
+                f"or tell me the {pending.field.replace('_', ' ')} city you meant."
+            ),
+            pending_city_confirmation=pending,
+        )
+
+    def _decision_for_session(
+        self, updated_session: TravelSession
+    ) -> ClarificationAction | ExecutionPlan:
 
         # Fix anything nonsensical before asking for anything else — no
         # point requesting a passenger count while a return date that
@@ -107,6 +176,32 @@ class LLMPlanner(Planner):
         return ExecutionPlan(
             session=updated_session,
             steps=self._build_steps(updated_session),
+        )
+
+    @staticmethod
+    def _city_clarification(
+        session: TravelSession, city_issue
+    ) -> ClarificationAction:
+        if city_issue.status == "confirm" and city_issue.suggested_value:
+            pending = PendingCityConfirmation(
+                field=city_issue.field,
+                raw_value=city_issue.raw_value,
+                suggested_value=city_issue.suggested_value,
+            )
+            return ClarificationAction(
+                session=session,
+                missing_slots=[city_issue.field],
+                question=f"Did you mean {canonical_display(city_issue.suggested_value)}?",
+                pending_city_confirmation=pending,
+            )
+
+        return ClarificationAction(
+            session=session,
+            missing_slots=[city_issue.field],
+            question=(
+                f"I couldn't match '{city_issue.raw_value}' to a supported destination. "
+                f"Which city did you mean?"
+            ),
         )
 
     @staticmethod
