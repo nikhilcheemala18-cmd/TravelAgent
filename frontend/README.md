@@ -60,15 +60,21 @@ copy .env.example .env
 npm run dev
 ```
 
-`.env` sets `VITE_API_BASE_URL` — the FastAPI backend's base URL
-(including its `/api/v1` prefix). This is the only place the backend URL
-is configured; nothing else in the app hardcodes it. Point it at wherever
-the backend is running (see `../backend/README.md`).
+`.env` sets `VITE_API_BASE_URL` — the FastAPI backend origin, without the
+`/api/v1` prefix. The API client appends `/api/v1` in one place, so local
+development uses:
+
+```bash
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+For production, point this value at the deployed backend origin. Do not
+include `/api/v1` in new environment values.
 
 ## Conversation + itinerary flow
 
 `useChat` (in `src/hooks/useChat.js`) sends each message to
-`POST {VITE_API_BASE_URL}/chat` with the current `session_id` (`null` on
+`POST {VITE_API_BASE_URL}/api/v1/chat` with the current `session_id` (`null` on
 the first message), stores whatever `session_id` the backend returns, and
 includes it on every subsequent call. Whenever a response includes a
 non-null `itinerary`, the hook also updates its `itinerary` state — this

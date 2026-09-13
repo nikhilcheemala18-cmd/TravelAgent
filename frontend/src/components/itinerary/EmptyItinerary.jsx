@@ -7,7 +7,7 @@ export default function EmptyItinerary() {
     <div className="animate-fade-in flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
       <p className="text-ink text-sm font-semibold">No trip planned yet</p>
       <p className="text-ink-muted mt-1 max-w-xs text-sm">
-        Tell the assistant where you&apos;d like to go, and your itinerary will show up here.
+        Send a travel request to generate a simulated flight and hotel itinerary.
       </p>
     </div>
   )

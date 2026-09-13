@@ -9,9 +9,12 @@ export default function ErrorMessage({ message, onDismiss, onRetry }) {
   return (
     <div
       role="alert"
-      className="animate-fade-in border-error/30 bg-error/10 text-error flex items-start justify-between gap-3 rounded-lg border px-4 py-3 text-sm"
+      className="animate-fade-in border-error/30 bg-error/10 text-ink flex items-start justify-between gap-4 rounded-lg border px-4 py-3 text-sm"
     >
-      <span>{message}</span>
+      <div>
+        <p className="text-error font-semibold">Unable to complete that request</p>
+        <p className="mt-0.5">{message}</p>
+      </div>
       <div className="flex shrink-0 items-center gap-3">
         {onRetry && (
           <button

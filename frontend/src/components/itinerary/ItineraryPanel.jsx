@@ -1,4 +1,4 @@
-import { Plane, Hotel, Sparkles, TriangleAlert } from 'lucide-react'
+import { Info, Plane, Hotel, Sparkles, TriangleAlert } from 'lucide-react'
 import SectionTitle from './SectionTitle'
 import TripSummaryCard from './TripSummaryCard'
 import FlightCard from './FlightCard'
@@ -37,6 +37,11 @@ export default function ItineraryPanel({ itinerary, isLoading, meta }) {
         <EmptyItinerary />
       ) : (
         <div className="flex flex-col gap-6 p-4 sm:p-6">
+          <div className="border-primary/20 bg-primary/5 text-primary inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold">
+            <Info className="h-3.5 w-3.5" aria-hidden="true" />
+            Demo Mode - Simulated Travel Inventory
+          </div>
+
           <TripSummaryCard
             travelerInfo={itinerary.traveler_information}
             tripSummary={itinerary.trip_summary}

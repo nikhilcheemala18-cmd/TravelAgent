@@ -1,10 +1,10 @@
 import SuggestionChip from './SuggestionChip'
 
 const SUGGESTIONS = [
-  'Weekend trip to Goa',
-  'Hyderabad to Bangalore next Friday',
-  'Family vacation to Kerala',
-  'Business trip to Mumbai',
+  'I want to travel from Delhi to Paris on 2026-11-20 for 2 passengers',
+  'Travel to Tokyo next Friday',
+  'Change destination to Singapore',
+  'I want to travel from Mumbai to Goa on 2026-12-15 for 2 passengers with a 4-star hotel',
 ]
 
 /**
@@ -20,7 +20,7 @@ export default function WelcomeScreen({ onSuggestionClick }) {
         Tell me where you&apos;d like to travel, and I&apos;ll help you plan your trip.
       </p>
 
-      <div className="mt-6 flex max-w-md flex-wrap justify-center gap-2">
+      <div className="mt-6 flex max-w-xl flex-wrap justify-center gap-2">
         {SUGGESTIONS.map((suggestion) => (
           <SuggestionChip key={suggestion} onClick={() => onSuggestionClick(suggestion)}>
             {suggestion}

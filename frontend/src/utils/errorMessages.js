@@ -5,20 +5,20 @@
  */
 export function getFriendlyErrorMessage(error) {
   if (error?.code === 'ECONNABORTED' || /timeout/i.test(error?.message ?? '')) {
-    return 'The request took too long to respond. Please try again.'
+    return 'The travel assistant took too long to respond. Please try again.'
   }
 
   if (error?.response) {
     // The backend responded, but with a non-2xx status.
     const detail = error.response.data?.detail
     if (typeof detail === 'string') return detail
-    return `The server returned an error (status ${error.response.status}). Please try again.`
+    return `The travel API returned status ${error.response.status}. Please try again.`
   }
 
   if (error?.request) {
     // The request was sent but no response came back (network/CORS/offline).
-    return 'Unable to reach the server. Please check your connection and try again.'
+    return 'Unable to reach the travel API. Check that the backend is running, then try again.'
   }
 
-  return 'Something went wrong. Please try again.'
+  return 'Something went wrong while preparing the response. Please try again.'
 }

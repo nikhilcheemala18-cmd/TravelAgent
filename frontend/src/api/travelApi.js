@@ -2,11 +2,22 @@
 
 import axios from 'axios'
 
-const BACKEND_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+const API_PREFIX = '/api/v1'
+const DEFAULT_BACKEND_URL = 'http://127.0.0.1:8000'
+
+function normalizeBackendUrl(url) {
+  const withoutTrailingSlash = url.replace(/\/+$/, '')
+  return withoutTrailingSlash.endsWith(API_PREFIX)
+    ? withoutTrailingSlash.slice(0, -API_PREFIX.length)
+    : withoutTrailingSlash
+}
+
+const BACKEND_URL = normalizeBackendUrl(
+  import.meta.env.VITE_API_BASE_URL || DEFAULT_BACKEND_URL,
+)
 
 const apiClient = axios.create({
-  baseURL: `${BACKEND_URL}/api/v1`,
+  baseURL: `${BACKEND_URL}${API_PREFIX}`,
   headers: {
     'Content-Type': 'application/json',
   },

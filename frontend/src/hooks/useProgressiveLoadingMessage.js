@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 
 const DEFAULT_MESSAGES = [
-  'Searching flights...',
-  'Looking for hotels...',
-  'Comparing options...',
-  'Building your itinerary...',
+  'Understanding your trip details...',
+  'Processing your travel request...',
+  'Preparing itinerary results...',
 ]
 
 /**
