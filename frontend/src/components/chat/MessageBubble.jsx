@@ -1,14 +1,16 @@
 import { formatTimestamp } from '../../utils/formatTime'
+import AssistantAvatar from './AssistantAvatar'
 
 export default function MessageBubble({ role, content, timestamp }) {
   const isUser = role === 'user'
 
   return (
-    <div className={`animate-message-in flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`message-row animate-message-in flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+      {!isUser && <AssistantAvatar />}
       <div
-        className={`shadow-card max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
+        className={`message-bubble shadow-card rounded-2xl text-sm ${
           isUser
-            ? 'bg-primary rounded-br-sm text-white'
+            ? 'bg-action rounded-br-sm text-white'
             : 'border-border bg-card text-ink rounded-bl-sm border'
         }`}
       >

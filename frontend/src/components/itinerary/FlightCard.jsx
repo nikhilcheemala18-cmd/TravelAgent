@@ -43,7 +43,7 @@ export default function FlightCard({ flight, badges = [] }) {
   )
 
   return (
-    <div className="group border-border bg-card shadow-card hover:shadow-card-hover rounded-xl border p-4 transition hover:-translate-y-0.5 sm:p-5">
+    <div className="result-card group border-border bg-card shadow-card hover:shadow-card-hover rounded-xl border p-4 transition sm:p-5">
       {badges.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-1.5">
           {badges.map((label) => (
@@ -56,11 +56,11 @@ export default function FlightCard({ flight, badges = [] }) {
 
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-ink font-semibold">{airline || 'Flight option'}</p>
+          <p className="text-ink text-[15px] font-semibold">{airline || 'Flight option'}</p>
           {flightNumber && <p className="text-ink-muted text-xs">Flight {flightNumber}</p>}
         </div>
         {price != null && (
-          <p className="text-ink text-lg font-bold whitespace-nowrap">
+          <p className="text-ink text-lg font-semibold whitespace-nowrap">
             {formatCurrency(price, currency)}
           </p>
         )}

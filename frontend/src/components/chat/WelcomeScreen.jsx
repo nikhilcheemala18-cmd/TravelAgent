@@ -1,4 +1,12 @@
 import SuggestionChip from './SuggestionChip'
+import { Plane, MapPin, Compass, Hotel } from 'lucide-react'
+
+const SUGGESTION_STYLES = [
+  { label: 'Delhi to Paris for two', icon: Plane },
+  { label: 'Explore Tokyo next Friday', icon: MapPin },
+  { label: 'Change destination to Singapore', icon: Compass },
+  { label: 'Mumbai to Goa with a 4-star stay', icon: Hotel },
+]
 
 const SUGGESTIONS = [
   'I want to travel from Delhi to Paris on 2026-11-20 for 2 passengers',
@@ -14,15 +22,15 @@ const SUGGESTIONS = [
  */
 export default function WelcomeScreen({ onSuggestionClick }) {
   return (
-    <div className="animate-fade-in flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
-      <h2 className="text-ink text-2xl font-bold">Hi! I&apos;m your AI Travel Assistant.</h2>
-      <p className="text-ink-muted mt-3 max-w-sm text-sm leading-relaxed">
-        Tell me where you&apos;d like to travel, and I&apos;ll help you plan your trip.
-      </p>
+    <div className="welcome-area animate-fade-in flex flex-1 flex-col items-center">
+      <div className="welcome-intro">
+        <h2 className="welcome-heading">Where to next?</h2>
+        <p className="welcome-subheading">Tell me a destination, a date, or what you have in mind.</p>
+      </div>
 
-      <div className="mt-6 flex max-w-xl flex-wrap justify-center gap-2">
-        {SUGGESTIONS.map((suggestion) => (
-          <SuggestionChip key={suggestion} onClick={() => onSuggestionClick(suggestion)}>
+      <div className="suggestions-grid">
+        {SUGGESTIONS.map((suggestion, index) => (
+          <SuggestionChip key={suggestion} {...SUGGESTION_STYLES[index]} onClick={() => onSuggestionClick(suggestion)}>
             {suggestion}
           </SuggestionChip>
         ))}

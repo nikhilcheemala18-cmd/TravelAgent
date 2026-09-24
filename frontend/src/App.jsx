@@ -1,5 +1,7 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
+import LandingA from './landing/LandingA/LandingA'
+import LandingB from './landing/LandingB/LandingB'
 
 /**
  * Top-level route wiring only. Page composition lives in src/pages,
@@ -10,7 +12,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<LandingA />} />
+        <Route path="/landing-a" element={<LandingA />} />
+        <Route path="/landing-b" element={<LandingB />} />
+        <Route path="/workspace" element={<Home />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   )

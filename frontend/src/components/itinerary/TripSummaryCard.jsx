@@ -20,12 +20,12 @@ export default function TripSummaryCard({ travelerInfo, tripSummary }) {
   const currency = tripSummary?.currency
 
   return (
-    <div className="animate-fade-in border-border bg-card shadow-card rounded-xl border p-4 sm:p-6">
-      <h3 className="text-ink mb-4 flex items-center gap-2 text-lg font-bold">
+    <div className="trip-summary-card animate-fade-in border-border bg-card shadow-card rounded-xl border p-4 sm:p-5">
+      <h3 className="text-ink mb-4 flex items-center gap-2 text-base font-semibold">
         <MapPinned className="text-primary h-5 w-5" aria-hidden="true" />
         Trip Summary
       </h3>
-      <div className="flex flex-col gap-2">
+      <div className="trip-summary-fields flex flex-col">
         {TRAVELER_FIELDS.map(([key, label]) => (
           <InfoRow key={key} label={label} value={travelerInfo[key]} />
         ))}
@@ -41,7 +41,8 @@ export default function TripSummaryCard({ travelerInfo, tripSummary }) {
           <InfoRow
             label="Estimated Total"
             value={formatCurrency(tripSummary.total_estimated_cost, currency)}
-            valueClassName="text-accent text-right text-base font-bold"
+            rowClassName="trip-summary-total"
+            valueClassName="text-accent text-right text-lg font-semibold"
           />
         )}
       </div>

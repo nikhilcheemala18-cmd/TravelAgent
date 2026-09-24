@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import MessageBubble from './MessageBubble'
 import WelcomeScreen from './WelcomeScreen'
 import Loading from '../common/Loading'
+import AssistantAvatar from './AssistantAvatar'
 
 /**
  * Scrollable message list, or the welcome screen before the first
@@ -17,15 +18,15 @@ export default function ChatWindow({ messages, isLoading, onSuggestionClick }) {
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-1 flex-col overflow-y-auto">
+      <div className="chat-scroll flex min-h-0 flex-1 flex-col overflow-y-auto">
         <WelcomeScreen onSuggestionClick={onSuggestionClick} />
       </div>
     )
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6">
-      <div className="mx-auto flex max-w-2xl flex-col gap-3">
+    <div className="chat-scroll min-h-0 flex-1 overflow-y-auto" role="log" aria-label="Travel conversation" aria-live="polite">
+      <div className="conversation-content mx-auto flex flex-col">
         {messages.map((message) => (
           <MessageBubble
             key={message.id}
@@ -36,9 +37,10 @@ export default function ChatWindow({ messages, isLoading, onSuggestionClick }) {
         ))}
 
         {isLoading && (
-          <div className="animate-message-in flex justify-start">
-            <div className="border-border bg-card shadow-card rounded-2xl rounded-bl-sm border px-4 py-2.5">
-              <Loading label="Assistant is typing" visibleLabel={false} />
+          <div className="message-row animate-message-in flex justify-start">
+            <AssistantAvatar />
+            <div className="border-border bg-card shadow-card rounded-2xl rounded-bl-sm border px-4 py-3">
+              <Loading label="Processing your trip request" />
             </div>
           </div>
         )}

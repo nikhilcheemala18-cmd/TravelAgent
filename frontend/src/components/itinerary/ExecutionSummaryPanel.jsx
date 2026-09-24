@@ -21,9 +21,9 @@ export default function ExecutionSummaryPanel({
       <button
         type="button"
         onClick={() => setExpanded((prev) => !prev)}
-        className="text-ink-muted hover:text-ink flex w-full items-center justify-between px-4 py-3 text-left text-xs font-bold tracking-wide uppercase transition"
+        className="text-ink-muted hover:text-ink flex w-full items-center justify-between px-4 py-3 text-left text-xs font-medium transition"
       >
-        <span>Execution Summary</span>
+        <span>Process details</span>
         <span className="text-ink-muted">{expanded ? 'Hide' : 'Show'}</span>
       </button>
 

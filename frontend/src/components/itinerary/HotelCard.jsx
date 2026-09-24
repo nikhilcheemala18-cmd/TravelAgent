@@ -41,7 +41,7 @@ export default function HotelCard({ hotel }) {
   )
 
   return (
-    <div className="group border-border bg-card shadow-card hover:shadow-card-hover rounded-xl border p-4 transition hover:-translate-y-0.5 sm:p-5">
+    <div className="result-card group border-border bg-card shadow-card hover:shadow-card-hover rounded-xl border p-4 transition sm:p-5">
       {(tier || hotelType) && (
         <div className="mb-3 flex flex-wrap gap-1.5">
           {tier && <Badge tone={TIER_TONE[tier]}>{tier}</Badge>}
@@ -51,7 +51,7 @@ export default function HotelCard({ hotel }) {
 
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-ink font-semibold">{name || 'Hotel option'}</p>
+          <p className="text-ink text-[15px] font-semibold">{name || 'Hotel option'}</p>
           <div className="text-ink-muted mt-1 flex flex-wrap items-center gap-x-2 text-xs">
             {starRating != null && (
               <span className="text-gold inline-flex items-center gap-0.5 font-medium">
@@ -64,7 +64,7 @@ export default function HotelCard({ hotel }) {
           </div>
         </div>
         {pricePerNight != null && (
-          <p className="text-ink text-lg font-bold whitespace-nowrap">
+          <p className="text-ink text-lg font-semibold whitespace-nowrap">
             {formatCurrency(pricePerNight, currency)}
             <span className="text-ink-muted ml-1 text-xs font-normal">/night</span>
           </p>

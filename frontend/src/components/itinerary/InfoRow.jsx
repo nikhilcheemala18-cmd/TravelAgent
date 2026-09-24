@@ -5,11 +5,11 @@
  * caller emphasize a specific row (e.g. Estimated Total in the accent
  * color) without a one-off variant of this component.
  */
-export default function InfoRow({ label, value, valueClassName }) {
+export default function InfoRow({ label, value, valueClassName, rowClassName }) {
   if (value == null || value === '') return null
 
   return (
-    <div className="flex items-baseline justify-between gap-4 text-sm">
+    <div className={`flex items-baseline justify-between gap-4 text-sm ${rowClassName ?? ''}`}>
       <span className="text-ink-muted">{label}</span>
       <span className={valueClassName ?? 'text-ink text-right font-medium'}>{value}</span>
     </div>

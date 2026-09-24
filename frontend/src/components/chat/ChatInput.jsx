@@ -1,3 +1,5 @@
+import { Send } from 'lucide-react'
+
 /**
  * Message composer. Controlled by the parent (`value`/`onChange`) so a
  * welcome-screen suggestion click can populate it. Submits on button
@@ -19,22 +21,24 @@ export default function ChatInput({ value, onChange, onSend, isLoading }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="border-border bg-card border-t px-4 py-4">
-      <div className="mx-auto flex max-w-2xl items-end gap-3">
+    <form onSubmit={handleSubmit} className="chat-composer">
+      <div className="composer-inner mx-auto flex items-end gap-3">
         <textarea
+          aria-label="Your travel request"
           value={value}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={handleKeyDown}
           rows={1}
           placeholder="Tell me about your trip..."
           disabled={isLoading}
-          className="border-border bg-card text-ink placeholder:text-ink-muted focus:border-primary focus:ring-primary/20 disabled:bg-surface max-h-32 flex-1 resize-none rounded-xl border px-4 py-2.5 text-sm transition focus:ring-4 focus:outline-none"
+          className="composer-input text-ink placeholder:text-ink-muted focus:ring-primary/20 min-w-0 flex-1 resize-none transition focus:ring-2 focus:outline-none"
         />
         <button
           type="submit"
           disabled={isLoading || !value.trim()}
-          className="bg-primary hover:bg-primary-hover disabled:bg-border disabled:text-ink-muted rounded-xl px-4 py-2.5 text-sm font-medium text-white transition active:scale-95 disabled:cursor-not-allowed disabled:active:scale-100"
+          className="send-button bg-action hover:bg-action-hover inline-flex items-center justify-center gap-2 text-sm font-medium text-white transition active:scale-95 disabled:cursor-not-allowed disabled:active:scale-100"
         >
+          <Send className="h-4 w-4" aria-hidden="true" />
           Send
         </button>
       </div>
