@@ -81,7 +81,13 @@ export default function Home() {
           />
         </div>
 
-        <div className="results-panel border-border bg-background flex min-w-0 flex-col border-t lg:overflow-y-auto lg:border-t-0 lg:border-l">
+        {itinerary && (
+          <a href="#itinerary-results" className="mobile-results-jump">
+            View itinerary
+          </a>
+        )}
+
+        <div id="itinerary-results" className="results-panel border-border bg-background flex min-w-0 flex-col border-t lg:overflow-y-auto lg:border-t-0 lg:border-l">
           <ItineraryPanel itinerary={itinerary} isLoading={isLoading} meta={meta} theme={theme} onThemeChange={setTheme} />
         </div>
       </div>

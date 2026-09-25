@@ -1841,6 +1841,10 @@ a:focus-visible {
 .results-panel dl,
 .results-panel .text-right { font-variant-numeric: tabular-nums; }
 
+.mobile-results-jump {
+  display: none;
+}
+
 .result-card {
   background:
     linear-gradient(180deg, rgb(255 255 255 / 70%), rgb(255 255 255 / 0%)),
@@ -1947,6 +1951,47 @@ a:focus-visible {
 }
 
 @media (max-width: 1020px) {
+  .workspace {
+    overflow: visible;
+  }
+
+  .chat-visual-panel {
+    height: auto;
+    min-height: calc(100svh - 62px);
+    overflow: visible;
+  }
+
+  .chat-scroll {
+    overflow: visible;
+  }
+
+  .results-panel {
+    min-height: auto;
+    scroll-margin-top: 12px;
+  }
+
+  .mobile-results-jump {
+    position: sticky;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    z-index: 5;
+    display: inline-flex;
+    align-self: center;
+    transform: translateY(50%);
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-card) 92%, transparent);
+    padding: 0 18px;
+    color: var(--color-primary);
+    font-size: 13px;
+    font-weight: 650;
+    text-decoration: none;
+    box-shadow: 0 14px 34px rgb(15 36 46 / 18%);
+    backdrop-filter: blur(16px);
+  }
+
   .landing-nav {
     grid-template-columns: 1fr auto;
     gap: 16px;
