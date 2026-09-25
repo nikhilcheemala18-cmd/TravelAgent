@@ -7,6 +7,7 @@ keep them optional so the app still boots in mock mode without them.
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -45,6 +46,20 @@ class Settings(BaseSettings):
     fallback_retry_delay_ms: int = 250
 
     cors_allow_origins: list[str] = ["*"]
+
+    @field_validator(
+        "flight_provider_api_key",
+        "hotel_provider_api_key",
+        "car_rental_provider_api_key",
+        "llm_api_key",
+        "llm_base_url",
+        mode="before",
+    )
+    @classmethod
+    def _blank_string_as_none(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
 
 
 @lru_cache
